@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>X Typer - Letter Wise Correctness</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #121212, #1e1e1e);
+    color: #eee;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #container {
+    width: 90vw;
+    max-width: 900px;
+    background: #222;
+    border-radius: 15px;
+    box-shadow: 0 0 20px #0ff;
+    padding: 30px 25px;
+    border: 3px solid #0ff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: #0ff;
+  }
+  .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  button {
+    background: #111;
+    border: 2px solid #0ff;
+    color: #0ff;
+    padding: 10px 22px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s ease;
+    min-width: 90px;
+  }
+  button.selected, button:hover {
+    background: #0ff;
+    color: #111;
+  }
+  #startBtn {
+    display: block;
+    margin: 0 auto 10px;
+    width: 50%;
+  }
+  .backBtn {
+    background-color: #f00;
+    border: none;
+    margin-top: 20px;
+    color: #fff;
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 1000;
+    padding: 10px 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: none;
+  }
+  .screen { display: none; flex-direction: column; }
+  .active { display: flex; }
+  #timer {
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #0ff;
+  }
+  #textDisplay {
+    background: #121212;
+    border: 2px solid #0ff;
+    border-radius: 12px;
+    padding: 20px 18px;
+    color: #eee;
+    font-size: 20px;
+    line-height: 1.6;
+    height: 150px;
+    overflow-y: auto;
+    user-select: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  #inputBox {
+    margin-top: 25px;
+  }
+  #inputBox input {
+    width: 100%;
+    font-size: 20px;
+    padding: 12px 15px;
+    border-radius: 12px;
+    border: 2px solid #0ff;
+    background: #222;
+    color: #eee;
+    outline: none;
+  }
+  /* Letters styling */
+  #textDisplay span.word {
+    margin-right: 6px;
+  }
+  #textDisplay span.letter.correct {
+    color: #0f0;
+    text-decoration: none;
+  }
+  #textDisplay span.letter.incorrect {
+    color: #eee;
+    text-decoration: underline red wavy;
+  }
+  #textDisplay span.letter.untyped {
+    color: #888;
+  }
+  #textDisplay span.word.current {
+    border-bottom: 2px solid #0ff;
+  }
+  #resultScreen {
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+  }
+  .circleResult {
+    background: #111;
+    border: 3px solid #0ff;
+    border-radius: 50%;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    font-size: 22px;
+    color: #0ff;
+    box-shadow: 0 0 15px #0ff;
+    padding: 15px;
+    user-select: none;
+    white-space: pre-line;
+  }
+  #resultBackBtn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    margin: 0 0 20px 0 !important;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<button id="backBtn" class="backBtn">Back</button>
+
+<div id="container">
+  <h1>X Typer</h1>
+
+  <div id="startScreen" class="screen active">
+    <h3>Select Difficulty</h3>
+    <div class="button-group" id="difficultyButtons">
+      <button data-difficulty="easy">Easy</button>
+      <button data-difficulty="medium">Medium</button>
+      <button data-difficulty="hard">Hard</button>
+    </div>
+
+    <h3>Select Time</h3>
+    <div class="button-group" id="timeButtons">
+      <button data-time="30">30 sec</button>
+      <button data-time="60">1 min</button>
+      <button data-time="90">1:30 min</button>
+      <button data-time="120">2 min</button>
+    </div>
+
+    <button id="startBtn">Start Game</button>
+  </div>
+
+  <div id="gameScreen" class="screen">
+    <div id="timer">Time: 00:00</div>
+    <div id="textDisplay"></div>
+    <div id="inputBox">
+      <input type="text" id="textInput" autocomplete="off" spellcheck="false" />
+    </div>
+  </div>
+
+  <div id="resultScreen" class="screen">
+    <button id="resultBackBtn" class="backBtn" style="position: relative; margin-bottom: 20px;">Back</button>
+    <div class="circleResult" id="circleSpeed">Speed:\n0 WPM</div>
+    <div class="circleResult" id="circleAccuracy">Accuracy:\n0%</div>
+    <div class="circleResult" id="circleResult">Result</div>
+  </div>
+</div>
+
+<audio id="typingSound" src="click.wav" preload="auto"></audio>
+<audio id="clickSound" src="click.wav" preload="auto"></audio>
+<audio id="bgMusic" src="background_sweet_music.mp3" preload="auto" loop></audio>
+
+<script>
+  const sentences = {
+    easy: [
+      "This is a simple test.",
+      "Fast fingers win.",
+      "Short and sweet sentence for you.",
+      "Keep calm and type on.",
+      "The sun is shining",
+      "I like eating mangoes.",
+      "She runs faster than me",
+      "My school starts at eight.",
+      "They play football every evening",
+      "The elephant is very strong.",
+      "We watched a movie last night",
+      "He is building a sandcastle.",
+      "Cats love to sleep all day",
+      "I solved the puzzle quickly.",
+      "The car moves very fast",
+      "We enjoy playing in the rain.",
+      "This is my favorite book",
+      "He wears a red jacket.",
+      "Birds fly high in the sky",
+      "She reads stories every night.",
+      "The rabbit jumps over the log",
+      "We are learning to code.",
+      "He forgot his homework at home",
+      "I always brush my teeth before bed."
+    ],
+    medium: [
+      "She opened the book and started reading.",
+      "He forgot to take his keys in the morning",
+      "They walked slowly through the narrow lane.",
+      "A small mistake can change everything",
+      "The lights in the room were too bright.",
+      "He looked at the sky and smiled",
+      "The dog barked loudly near the gate.",
+      "She wore a red dress to the party",
+      "We waited outside the shop for hours.",
+      "He ran fast and won the race",
+      "Music played softly in the background.",
+      "They fixed the broken clock on time",
+      "Her voice was calm and steady.",
+      "He climbed the ladder carefully",
+      "The game ended in a surprise draw.",
+      "I forgot to bring my notebook",
+      "She wrote a letter to her friend.",
+      "They painted the wall with care",
+      "The train stopped at the next station.",
+      "He cleaned the table and the floor",
+      "Practice regularly to improve your skills.",
+      "Focus on one word at a time while typing.",
+      "Can you beat the clock? Let's try!",
+      "Better faster, better smarter."
+    ],
+    hard: [
+      "Despite the rain, they continued their journey through the forest.",
+      "He carefully organized the documents before the meeting.",
+      "The scientist explained the experiment in simple language.",
+      "Her performance in the final exam was outstanding.",
+      "They watched the sunrise from the top of the mountain.",
+      "After dinner, she quietly walked to the nearby lake.",
+      "The engine made a strange sound while accelerating.",
+      "He received an unexpected gift from his best friend.",
+      "We discussed several important topics during lunch.",
+      "The artist created a masterpiece using recycled materials.",
+      "Before leaving, they double-checked the packing list.",
+      "She managed to fix the issue without anyone's help.",
+      "Their behavior during the seminar was quite impressive.",
+      "He stayed calm even during the most stressful moments.",
+      "The book contains valuable lessons about life and growth.",
+      "They arranged the chairs neatly in a circular pattern.",
+      "Although tired, she finished the entire project alone.",
+      "The bakery was filled with the smell of fresh bread.",
+      "Everyone appreciated his dedication to the work.",
+      "She whispered a secret message before walking away.",
+      "Sphinx of black quartz, judge my vow.",
+      "Complex sentences with punctuation: commas, periods, and question marks?",
+      "A typist must master precision and flow under pressure.",
+      "Punctuation, special-characters & speed; matter!",
+      "Quick, brown fox jumps over the lazy dog."
+    ]
+  };
+
+  // DOM elements
+  const screens = {
+    start: document.getElementById('startScreen'),
+    game: document.getElementById('gameScreen'),
+    result: document.getElementById('resultScreen')
+  };
+
+  const difficultyButtons = document.querySelectorAll('#difficultyButtons button');
+  const timeButtons = document.querySelectorAll('#timeButtons button');
+  const startBtn = document.getElementById('startBtn');
+  const backBtn = document.getElementById('backBtn');
+  const resultBackBtn = document.getElementById('resultBackBtn');
+
+  const timerDisplay = document.getElementById('timer');
+  const textDisplay = document.getElementById('textDisplay');
+  const textInput = document.getElementById('textInput');
+
+  const circleSpeed = document.getElementById('circleSpeed');
+  const circleAccuracy = document.getElementById('circleAccuracy');
+  const circleResult = document.getElementById('circleResult');
+
+  const typingSound = document.getElementById('typingSound');
+  const clickSound = document.getElementById('clickSound');
+  const bgMusic = document.getElementById('bgMusic');
+
+  // Game state
+  let selectedDifficulty = null;
+  let selectedTime = null;
+  let timer = null;
+  let timeLeft = 0;
+
+  let started = false;
+  let timerStarted = false;
+
+  let sentenceIndex = 0;
+  let currentSentence = "";
+  let totalTypedChars = 0;
+  let totalCorrectChars = 0;
+  let totalTypedCorrectChars = 0;
+  let totalTypedCharactersAll = 0;
+
+  // Highlight letters in the textDisplay
+  function highlightLetters(input) {
+    textDisplay.innerHTML = '';
+
+    const words = currentSentence.split(' ');
+    const inputWords = input.trimEnd().split(' ');
+
+    words.forEach((word, wIdx) => {
+      const wordSpan = document.createElement('span');
+      wordSpan.classList.add('word');
+      if (wIdx === currentWordIndex(inputWords)) {
+        wordSpan.classList.add('current');
+      }
+
+      for (let i = 0; i < word.length; i++) {
+        const letterSpan = document.createElement('span');
+        letterSpan.classList.add('letter');
+
+        // Determine letter state
+        if (wIdx < inputWords.length) {
+          const typedWord = inputWords[wIdx];
+          if (i < typedWord.length) {
+            if (typedWord[i] === word[i]) {
+              letterSpan.classList.add('correct');
+              letterSpan.textContent = word[i];
+            } else {
+              letterSpan.classList.add('incorrect');
+              letterSpan.textContent = word[i];
+            }
+          } else {
+            letterSpan.classList.add('untyped');
+            letterSpan.textContent = word[i];
+          }
+        } else {
+          letterSpan.classList.add('untyped');
+          letterSpan.textContent = word[i];
+        }
+
+        wordSpan.appendChild(letterSpan);
+      }
+
+      // Add space after each word except last
+      textDisplay.appendChild(wordSpan);
+      if (wIdx !== words.length - 1) {
+        textDisplay.appendChild(document.createTextNode(' '));
+      }
+    });
+  }
+
+  // Return index of current word being typed based on inputWords length and backspace
+  function currentWordIndex(inputWords) {
+    if (inputWords.length === 0) return 0;
+    if (inputWords.length > currentSentence.split(' ').length) return currentSentence.split(' ').length - 1;
+    return inputWords.length - 1;
+  }
+
+  // Check if current input fully matches current sentence (ignoring trailing spaces)
+  function isSentenceComplete(input) {
+    return input.trim().length >= currentSentence.length;
+  }
+
+  // Load sentence to UI and reset input
+  function loadRandomSentence() {
+    const difficultySentences = sentences[selectedDifficulty];
+    const randomIndex = Math.floor(Math.random() * difficultySentences.length);
+    currentSentence = difficultySentences[randomIndex];
+    textInput.value = "";
+    totalTypedChars = 0;
+    totalCorrectChars = 0;
+    highlightLetters("");
+    sentenceIndex = randomIndex;
+  }
+
+  // Start game timer countdown
+  function startTimer() {
+    timerStarted = true;
+    timeLeft = selectedTime;
+    timerDisplay.textContent = `Time: ${formatTime(timeLeft)}`;
+
+    timer = setInterval(() => {
+      timeLeft--;
+      timerDisplay.textContent = `Time: ${formatTime(timeLeft)}`;
+      if (timeLeft <= 0) {
+        endGame();
+      }
+    }, 1000);
+  }
+
+  // Format seconds as mm:ss
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Calculate WPM = words / (time in minutes)
+  function calculateWPM() {
+    const minutes = (selectedTime - timeLeft) / 60;
+    if (minutes === 0) return 0;
+    const wordsTyped = totalTypedCharactersAll / 5;
+    return Math.round(wordsTyped / minutes);
+  }
+
+  // Calculate accuracy = correct chars / total typed chars * 100
+  function calculateAccuracy() {
+    if (totalTypedCharactersAll === 0) return 0;
+    return Math.round((totalTypedCorrectChars / totalTypedCharactersAll) * 100);
+  }
+
+  // End game: stop timer, show results
+  function endGame() {
+    clearInterval(timer);
+    started = false;
+    timerStarted = false;
+    bgMusic.pause();
+    textInput.disabled = true;
+
+    // Save final totals for last sentence typed (in case partially typed)
+    totalTypedCharactersAll += totalTypedChars;
+    totalTypedCorrectChars += totalCorrectChars;
+
+    // Calculate results
+    const wpm = calculateWPM();
+    const accuracy = calculateAccuracy();
+
+    circleSpeed.textContent = `Speed:\n${wpm} WPM`;
+    circleAccuracy.textContent = `Accuracy:\n${accuracy}%`;
+
+    let resultMsg = "Great job!";
+    if (accuracy < 50) resultMsg = "Keep practicing!";
+    else if (accuracy >= 90) resultMsg = "Excellent work!";
+
+    circleResult.textContent = `Result:\n${resultMsg}`;
+
+    // Save high score in localStorage (for WPM)
+    const highScoreKey = `xTyper_highscore_${selectedDifficulty}_${selectedTime}`;
+    const prevHighScore = parseInt(localStorage.getItem(highScoreKey)) || 0;
+    if (wpm > prevHighScore) {
+      localStorage.setItem(highScoreKey, wpm);
+      circleResult.textContent += "\nNew High Score!";
+    } else {
+      circleResult.textContent += `\nHigh Score: ${prevHighScore}`;
+    }
+
+    showScreen('result');
+    resultBackBtn.style.display = 'inline-block';
+    backBtn.style.display = 'none';
+  }
+
+  // Show one screen and hide others
+  function showScreen(screenName) {
+    Object.keys(screens).forEach(name => {
+      if (name === screenName) {
+        screens[name].classList.add('active');
+      } else {
+        screens[name].classList.remove('active');
+      }
+    });
+
+    if (screenName === 'game') {
+      backBtn.style.display = 'inline-block';
+      resultBackBtn.style.display = 'none';
+    } else if (screenName === 'start') {
+      backBtn.style.display = 'none';
+      resultBackBtn.style.display = 'none';
+    }
+  }
+
+  // Reset game state for new game
+  function resetGame() {
+    started = false;
+    timerStarted = false;
+    sentenceIndex = 0;
+    totalTypedChars = 0;
+    totalCorrectChars = 0;
+    totalTypedCorrectChars = 0;
+    totalTypedCharactersAll = 0;
+    textInput.disabled = false;
+    loadRandomSentence();
+  }
+
+  // Event: difficulty button click
+  difficultyButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      clickSound.currentTime = 0;
+      clickSound.play();
+      difficultyButtons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedDifficulty = btn.dataset.difficulty;
+    });
+  });
+
+  // Event: time button click
+  timeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      clickSound.currentTime = 0;
+      clickSound.play();
+      timeButtons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedTime = parseInt(btn.dataset.time);
+    });
+  });
+
+  // Start game button
+  startBtn.addEventListener('click', () => {
+    clickSound.currentTime = 0;
+    clickSound.play();
+    
+    if (!selectedDifficulty || !selectedTime) {
+      alert("Please select difficulty and time!");
+      return;
+    }
+    resetGame();
+    showScreen('game');
+    bgMusic.currentTime = 0;
+    bgMusic.play();
+    textInput.focus();
+    started = true;
+  });
+
+  // Back button on game screen
+  backBtn.addEventListener('click', () => {
+    clickSound.currentTime = 0;
+    clickSound.play();
+    
+    if (confirm("Are you sure you want to quit the game?")) {
+      clearInterval(timer);
+      started = false;
+      timerStarted = false;
+      bgMusic.pause();
+      showScreen('start');
+    }
+  });
+
+  // Back button on result screen
+  resultBackBtn.addEventListener('click', () => {
+    clickSound.currentTime = 0;
+    clickSound.play();
+    showScreen('start');
+  });
+
+  // Input box listener
+  textInput.addEventListener('input', e => {
+    if (!started) return;
+
+    if (!timerStarted) startTimer();
+
+    const input = e.target.value;
+    
+    // Play typing sound only if new char typed
+    if (input.length > totalTypedChars) {
+      typingSound.currentTime = 0;
+      typingSound.play();
+    }
+
+    totalTypedChars = input.length;
+
+    // Count correct letters for accuracy in current input
+    totalCorrectChars = 0;
+    for (let i = 0; i < Math.min(input.length, currentSentence.length); i++) {
+      if (input[i] === currentSentence[i]) totalCorrectChars++;
+    }
+
+    highlightLetters(input);
+
+    // Check if sentence is complete
+    if (isSentenceComplete(input)) {
+      // Add current sentence typed counts to totals
+      totalTypedCharactersAll += totalTypedChars;
+      totalTypedCorrectChars += totalCorrectChars;
+
+      // Clear input and load next sentence
+      setTimeout(() => {
+        textInput.value = "";
+        loadRandomSentence();
+      }, 100);
+    }
+  });
+
+  // Initialize with first screen
+  showScreen('start');
+</script>
+</body>
+</html>
